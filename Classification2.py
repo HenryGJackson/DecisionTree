@@ -371,17 +371,7 @@ class network:
             self.type_set = False
             self.has_parent = False
 
-        # def __init__(self, func_num):
-        #     self.func = function(func_num)
-        #     self.func_num = func_num
-        #     self.func_locked = True
-        #     self.universal_params()
-        #
-        # def __init__(self, parent, layer):
-        #     self.parent = parent
-        #     self.func_locked = False
-        #     self.universal_params()
-        #     self.set_type(layer)
+        
     #End: Neuron: Initialisation methods
         def create_daughter(self, direction, ID):
             node = neuron(ID)
@@ -657,7 +647,7 @@ class network:
             return (pass_list, fail_list)
 
         def set_pass_dfs(self, list1, list2):
-            
+
 
         def cut_dataset(self, win_df, lose_df):
             lists = self.get_pass_list(win_df)
