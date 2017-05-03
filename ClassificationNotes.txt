@@ -1,0 +1,4 @@
+Class: Network:
+        Functions: increment_layer: Increase the member variable current_layer by 1
+                   get_current_layer: Return the value of current_layer
+                   create_network: 
