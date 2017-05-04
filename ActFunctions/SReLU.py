@@ -1,4 +1,4 @@
-class SReLU(function):
+class SReLU:
     # S-shaped rectified linear activation unit
     def __init__(self):
         self.tl = 0

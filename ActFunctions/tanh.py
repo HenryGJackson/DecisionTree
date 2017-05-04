@@ -1,5 +1,8 @@
-class tanh(function):
-    # Hyperbolic tanh function f(x) = tannh(ax)
+import numpy as np
+
+
+class tanh:
+    # Hyperbolic tanh ActFunctions f(x) = tannh(ax)
     def __init__(self):
         self.expo = 1
         self.range = [-1, 1]

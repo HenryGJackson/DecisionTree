@@ -1,4 +1,7 @@
-class sinusoid(function):
+import numpy as np
+
+
+class sinusoid:
     def __init__(self):
         self.range = [-1, 1]
 

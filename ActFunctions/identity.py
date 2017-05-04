@@ -1,6 +1,6 @@
 # Function Member classes. Each function instance can only...
 # ... invoke an instance of one of these classes
-# Identity function f(x) = x
+# Identity ActFunctions f(x) = x
 class identity:
     def __init__(self):
         self.value = 1

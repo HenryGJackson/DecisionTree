@@ -1,4 +1,7 @@
-class gaussian:
+import numpy as np
+
+
+class Gaussian:
     def __init__(self):
         self.range = [0, 1]
 

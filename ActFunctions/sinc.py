@@ -1,4 +1,7 @@
-class sinc(function):
+import numpy as np
+
+
+class sinc:
     def __str__(self):
         return "Function: Sinc"
 

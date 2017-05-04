@@ -5,6 +5,7 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import sys
 
 
 def plot_hist(array1, array2):
@@ -97,7 +98,7 @@ class network:
         else:
             return True
 
-        # Network Creation Methods
+            # Network Creation Methods
 
     def create_network(self, win_df, lose_df):
         print("Creating First Node")
@@ -111,9 +112,8 @@ class network:
         # Get the nodes that stem from the input node
         tmp = self.seed
         # print (tmp.get_weight())
-        if tmp == None:
-            print("network->create_network: Could not create seed. Exiting...")
-            return
+        if tmp is None:
+            raise Exception("network->create_network: Could not create seed. Exiting...")
         layer = self.seed.get_non_output_daughters()
         self.increment_layer()
         # While there are still new nodes to be created and we haven't reached...
@@ -149,8 +149,7 @@ class network:
                     tmp_new_nodes = tmp_new_nodes.append(node.get_failure_node())
                     # If this node isn't an output node, add the two new nodes to a temporary list
             if tmp_new_nodes == []:
-                print("No new nodes created. exiting..")
-                break
+                raise Exception("No new nodes created. exiting..")
             else:
                 layer = tmp_new_nodes
             self.increment_layer()
@@ -172,7 +171,7 @@ class network:
             # If the node is output there are no more nodes to add
             if node.is_output():
                 return None
-            # Set Up each node activation function
+            # Set Up each node activation ActFunctions
             yes_node = self.prepare_node(node.accept_pass_df, node.accept_fail_df, node.get_success_node())
             if yes_node == None:
                 node.set_type(-1)
@@ -208,7 +207,7 @@ class network:
             return 0
 
     def create_first_node(self, win_df, lose_df):
-        # find the best classification function for two arrays of the values of ONE variable...
+        # find the best classification ActFunctions for two arrays of the values of ONE variable...
         # ... which correspond to winners and losers
         self.node_count += 1
         self.seed = self.neuron(self.node_count)
@@ -281,7 +280,7 @@ class network:
                 losers = lose_df[variable]
                 # print "CheckPoint"
                 result = node.find_best_activation_function(winners, losers, 50)
-                if result == None:
+                if result is None:
                     continue
                 # result[0] = best method index
                 # result[1] = best cut value
@@ -351,366 +350,10 @@ class network:
 
     # End: Network Creation methods
 
-    # https://en.wikipedia.org/wiki/Activation_function
-    # classes of activation functions
-    class neuron:
-        # Neuron: Initialisation methods
-        def universal_params(self):
-            self.passind = 0
-            self.failind = 1
-
-        def __str__(self):
-            if self.func_locked:
-                return self.id, self.func.__str__()
-
-        def __init__(self, ID):
-            self.func_locked = False
-            self.universal_params()
-            self.id = ID
-            self.split_data_set = False
-            self.failure_node_exists = False
-            self.success_node_exists = False
-            self.type_set = False
-            self.has_parent = False
-
-
-            # End: Neuron: Initialisation methods
-
-        def create_daughter(self, direction, ID):
-            node = neuron(ID)
-            if direction:
-                self.set_success_path(node)
-            else:
-                self.set_failure_path(node)
-            return
-
-        def get_non_output_daughters(self):
-            if (self.failure_node_exists) & (self.success_node_exists):
-                if not ((self.get_success_node().is_output()) & (self.get_failure_node().is_output())):
-                    nodes = [self.get_success_node(), self.get_failure_node]
-                elif (self.get_success_node().is_output()):
-                    nodes = [self.get_failure_node()]
-                elif (self.get_failure_node().is_output()):
-                    nodes = [self.get_success_node()]
-                else:
-                    nodes = None
-                return nodes
-            else:
-                print("Daughter nodes not set. ID: ", self.id)
-                return None
-
-                # Network methods
-
-        def set_parent(self, parent, layer):
-            self.parent = parent
-            self.set_type(layer)
-            self.has_parent = True
-
-        def set_variable(self, variable):
-            self.variable = variable
-            self.var_lock = True
-            return
-
-        def get_variable(self):
-            return self.variable
-
-        def get_parent(self):
-            if self.has_parent:
-                if self.get_type() == "Input":
-                    return None
-                return self.parent
-            else:
-                return None
-
-        def set_type(self, layer, result=None):
-            self.type_set = True
-            if layer == 0:
-                self.type = "Input"
-            elif layer == -1:
-                self.type = "Output"
-                self.return_val = result
-            else:
-                self.type = "Intermediate"
-            return
-
-        def has_result_dfs(self):
-            if self.func_locked:
-                if not hasattr(self.func, 'accept_pass_df'):
-                    print("neuron->has_result_dfs: No DF for accepted pass events")
-                    return False
-                if not hasattr(self.func, 'reject_pass_df'):
-                    print("neuron->has_result_dfs: No DF for rejected pass events")
-                    return False
-                if not hasattr(self.func, 'accept_fail_df'):
-                    print("neuron->has_result_dfs: No DF for accepted fail events")
-                    return False
-                if not hasattr(self.func, 'reject_fail_df'):
-                    print("neuron->has_result_dfs: No DF for rejected fail events")
-                    return False
-                return True
-            else:
-                print("neuron->has_result_dfs: Function not locked")
-                return False
-
-        def get_type(self):
-            return self.type
-
-        def is_input(self):
-            if self.type == "Input":
-                return True
-            else:
-                return False
-
-        def is_output(self):
-            if self.get_type == "Output":
-                return True
-            else:
-                return False
-
-        def set_function(self, func_num):
-            if self.func_locked:
-                print("neuron->set_function: Function already set and cannot be changed.\n")
-                print(self.__str__())
-                return
-            else:
-                self.func = self.function(func_num)
-                self.func_locked = True
-                # print ("Node:", self.id, " Locked")
-                return
-
-        def set_function(self, func_num, cut, weight, not_inverted=True):
-            if self.func_locked:
-                print("neuron->set_function2: Function already set and cannot be changed.\n")
-                print(self.__str__())
-                return
-            else:
-                self.func = self.function(func_num)
-                self.func.set_cut(cut, not_inverted)
-                self.func_locked = True
-                self.set_weight(weight)
-                # print ("Node:", self.id, " Locked")
-                return
-
-        def get_function(self):
-            print(self.func)
-            return self.func
-
-        def set_weight(self, weight):
-            self.weight = weight
-            return
-
-        def get_weight(self):
-            return self.weight
-
-        def evaluate(self, x):
-            if self.func_locked:
-                return self.func.evaluate(x)
-            else:
-                print("Function not locked, lock one in or try 'function::evaluate()'\nie. self.func must exist")
-                return None
-
-                # Check the best attribute function for pass/fail with value x
-
-        def passes_cut(self, x):
-            if self.func_locked:
-                val = self.evaluate(x)
-                if val != None:
-                    if self.func.cutdir == True:
-                        if val > self.func.cut:
-                            return True
-                        else:
-                            return False
-                    else:
-                        if val < self.func.cut:
-                            return True
-                        else:
-                            return False
-                else:
-                    print("Error: neuron->passes_cut: Could not evaluate function")
-                    return None
-            else:
-                print("Error: neuron->passes_cut: Function must be locked such that self.func exists")
-                return None
-
-        def set_success_path(self, next_neuron):
-            self.success_node = next_neuron
-            self.success_node_exists = True
-            next_neuron.set_parent(self)
-            return
-
-        def set_failure_path(self, next_neuron):
-            self.failure_node_exists = True
-            self.failure_node = next_neuron
-            next_neuron.set_parent(self)
-            return
-
-        def check_paths(self):
-            if self.failure_node_exists & self.success_node_exists:
-                return True
-            else:
-                return False
-
-        def get_success_node(self):
-            if self.success_node_exists:
-                return self.success_node
-            else:
-                print("neuron->get_success_node: Success node does not exist")
-                return None
-
-        def get_failure_node(self):
-            if self.failure_node_exists:
-                return self.failure_node
-            else:
-                print("neuron->get_failure_node: Failure node does not exist")
-                return None
-
-        # Pass value to the next node,
-        # if this is an output node, returns True of success and False for fail
-        # otherwise, gets the result of pass_on() for the next node.
-        # once an output node is reached, the result is returned
-        def pass_on(self, entry):
-            print("ID: ", self.id, self.get_type(), self.get_function().__str__())
-            print(self.get_variable())
-            value = entry[self.get_variable()]
-            check = self.passes_cut(value)
-            print("Passes Cut:", check)
-            if check != None:
-                if self.type != "Output":
-                    if self.check_paths():
-                        if check == True:
-                            final = self.success_node.pass_on(entry)
-                        elif check == False:
-                            final = self.failure_node.pass_on(entry)
-                        return final
-                    else:
-                        print("Error: neuron->pass_on: Path not complete. Exiting...")
-                        return None
-                else:
-                    return check
-            else:
-                print("Error: neuron->pass_on: Couldn't Analyse Cut. Exiting...")
-                return None
-
-
-                # Neuron: End Network methods
-
-                # Neuron: Training methods
-
-        def find_best_activation_function(self, pass_array, fail_array, step_precision=10):
-            if (array_length_check(pass_array, fail_array)):
-                results = []
-                best_passer = -1
-                best_failer = -1
-                passer_ent = [0, 0]
-                failer_ent = [0, 0]
-                # print pass_array, fail_array
-                for method in range(17):
-                    highest_ratio = 0
-                    lowest_ratio = 1.0
-                    # Get the number of successfully catagorized events for each set
-                    func = self.function(method)
-                    results = func.find_best_cut(pass_array, fail_array, step_precision)
-                    del func
-                    if results == None:
-                        print("neuron->find_best_activation_function: Exiting...")
-                        return None
-                    if results[1] > highest_ratio:
-                        highest_ratio = results[1]
-                        cut_val_high = results[0]
-                        best_method_high = method
-                    elif results[1] < lowest_ratio:
-                        lowest_ratio = results[1]
-                        cut_val_low = results[0]
-                        best_method_low = method
-                low_inverse = (1 - lowest_ratio)
-                if highest_ratio > low_inverse:
-                    best_ratio = highest_ratio
-                    cut_val = cut_val_high
-                    best_method = best_method_high
-                    dont_invert = True
-                else:
-                    best_ratio = low_inverse
-                    cut_val = cut_val_low
-                    best_method = best_method_low
-                    dont_invert = False
-                # self.set function(best_method, cut_val, dont_invert)
-
-                return best_method, cut_val, best_ratio, dont_invert
-            else:
-                print("neuron->find_best_activation_function: exiting...")
-                return None
-
-        def get_pass_list(self, df):
-            pass_list = []
-            fail_list = []
-            for i in df.index:
-                # print "line 367: ", df[self.variable][i]
-                if self.passes_cut(df[self.variable][i]):
-                    pass_list.append(i)
-                else:
-                    fail_list.append(i)
-            return (pass_list, fail_list)
-
-        # def set_pass_dfs(self, list1, list2):
-
-        def cut_dataset(self, win_df, lose_df):
-            lists = self.get_pass_list(win_df)
-            if (lists[0] == []):
-                self.accept_pass_df = DataFrame({'none': []})
-                if not (self.accept_pass_df).empty():
-                    print("NOT EMPTY")
-                print("accept_pass_df set None")
-                # self.set_type(-1,False)
-                # return
-            else:
-                self.accept_pass_df = win_df.drop(lists[0]).reset_index()
-                print("accept_pass_df set")
-            if lists[1] == []:
-                self.reject_pass_df = pd.DataFrame({'none': []})
-                if (self.reject_pass_df).empty():
-                    print("NOT EMPTY")
-                print("reject_pass_df set None")
-                # self.set_type(-1,True)
-                # return
-            else:
-                self.reject_pass_df = win_df.drop(lists[1]).reset_index()
-                print("reject_pass_df set")
-
-            lists2 = self.get_pass_list(lose_df)
-            if (lists2[0] == []):
-                self.accept_fail_df = None
-                print("accept_fail_df set None")
-            else:
-                self.accept_fail_df = lose_df.drop(lists2[0]).reset_index()
-                print("accept_fail_df set")
-
-                # self.set_type(-1,True)
-                # return
-            if lists2[1] == []:
-                self.reject_fail_df = None
-                print("reject_fail_df set None")
-            else:
-                self.reject_fail_df = lose_df.drop(lists2[1]).reset_index()
-                print("reject_fail_df set")
-
-                # self.set_type(-1,False)
-                # return
-            # if self.accept_pass_df.empty:
-            #     print("empty")
-            # if self.reject_pass_df.empty:
-            #     print("empty")
-            # print self.accept_pass_df, self.reject_pass_df
-            # if self.accept_fail_df.empty:
-            #     print("empty")
-            # if self.reject_fail_df.empty:
-            #     print("empty")
-            self.split_data_set = True
-            return self
-
             # End: Neuron: Training methods
 
         class function:
-            # Initialisation methods: class: function
+            # Initialisation methods: class: ActFunctions
             def __init__(self, funct_num):
                 self.func_num = funct_num
                 if funct_num == 0:
@@ -768,10 +411,10 @@ class network:
                     self.func = self.gaussian()
                     self.func_lock = True
                 else:
-                    print("function number invalid, range = [0,17]")
+                    print("ActFunctions number invalid, range = [0,17]")
                     self.func_lock = False
                 return
-                # End: Initialisation methods: class: function
+                # End: Initialisation methods: class: ActFunctions
 
             def __str__(self):
                 return self.func.__str__()
@@ -804,7 +447,7 @@ class network:
 
                 # Training methods
 
-            # Returns two arrays of values after the initial values have been passed through the activation function
+            # Returns two arrays of values after the initial values have been passed through the activation ActFunctions
             def apply_function(self, pass_array, fail_array):
                 if (array_length_check(pass_array, fail_array)):
                     if self.func_lock:
@@ -818,9 +461,9 @@ class network:
                             # print("loop\n\n")
                         return (pass_results, fail_results)
                     else:
-                        print("Error: neuron->function->apply_function: Function must be set and locked")
+                        print("Error: neuron->ActFunctions->apply_function: Function must be set and locked")
                 else:
-                    print("neuron->function->apply_function: exiting...")
+                    print("neuron->ActFunctions->apply_function: exiting...")
                     return None
 
             def get_function_range(self, pass_output, fail_output):
@@ -844,7 +487,7 @@ class network:
                     myrange = [mini, maxi]
                     return myrange
                 else:
-                    print("neuron->function->get_function_range: exiting...")
+                    print("neuron->ActFunctions->get_function_range: exiting...")
                     return None
 
             def plot_hist(self, pass_array, fail_array):
@@ -852,11 +495,11 @@ class network:
                 plot_hist(output[0], output[1])
                 return
 
-            # Finds the best cut to use for a function which is locked in.
-            # Iterates over the range of output for the function with number of iterations = step_number
+            # Finds the best cut to use for a ActFunctions which is locked in.
+            # Iterates over the range of output for the ActFunctions with number of iterations = step_number
             # Maximises the ratio of correctly identified points to incorrectly identified
             # Returns the best cut value and the ratio of pass/fail (including both sets)
-            # Means that to find the best method only requires comparing output pf this function for each method
+            # Means that to find the best method only requires comparing output pf this ActFunctions for each method
             def find_best_cut(self, pass_array, fail_array, step_number=10):
                 if (array_length_check(pass_array, fail_array)):
                     self.passind = 0
@@ -887,15 +530,15 @@ class network:
                             best_cut = cut_val
                     return (cut_val, ratio)
                 else:
-                    print("neuron->function->find_best_cut: exiting...")
+                    print("neuron->ActFunctions->find_best_cut: exiting...")
                     return None
                     # End Trining methods
 
                     # Individual Function Classes
 
-            # Function Member classes. Each function instance can only...
+            # Function Member classes. Each ActFunctions instance can only...
             # ... invoke an instance of one of these classes
-            # Identity function f(x) = x
+            # Identity ActFunctions f(x) = x
             class identity:
                 def __init__(self):
                     self.value = 1
@@ -945,7 +588,7 @@ class network:
                     return
 
             class soft_step:
-                # Soft step function f(x) = 1 / (1 + exp(-ax))
+                # Soft step ActFunctions f(x) = 1 / (1 + exp(-ax))
                 def __init__(self):
                     self.expo = 1
                     self.range = [0, 1]
@@ -960,7 +603,7 @@ class network:
                     return 1.0 / (1 + np.exp(-self.expo * value))
 
             class tanh:
-                # Hyperbolic tanh function f(x) = tannh(ax)
+                # Hyperbolic tanh ActFunctions f(x) = tannh(ax)
                 def __init__(self):
                     self.expo = 1
                     self.range = [-1, 1]
@@ -975,7 +618,7 @@ class network:
                     return np.tan(self.expo * value)
 
             class arctan:
-                # Inverse tan function f(x) = arctan(ax)
+                # Inverse tan ActFunctions f(x) = arctan(ax)
                 def __init__(self):
                     self.coeff = 1
                     self.range = [-0.5 * np.pi, 0.5 * np.pi]
@@ -990,7 +633,7 @@ class network:
                     return np.arctan(self.coeff * value)
 
             class softsign:
-                # Soft sign function f(x) = x / (1 + |x|)
+                # Soft sign ActFunctions f(x) = x / (1 + |x|)
                 def __init__(self):
                     self.coeff = 1
                     self.range = [-1, 1]

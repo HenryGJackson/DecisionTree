@@ -1,5 +1,5 @@
-class softsign(function):
-    # Soft sign function f(x) = x / (1 + |x|)
+class softsign:
+    # Soft sign ActFunctions f(x) = x / (1 + |x|)
     def __init__(self):
         self.coeff = 1
         self.range = [-1, 1]

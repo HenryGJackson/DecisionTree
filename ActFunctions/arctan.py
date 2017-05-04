@@ -1,5 +1,9 @@
-class arctan:
-    # Inverse tan function f(x) = arctan(ax)
+import numpy as np
+
+
+
+class Arctan:
+    # Inverse tan ActFunctions f(x) = arctan(ax)
     def __init__(self):
         self.coeff = 1
         self.range = [-0.5 * np.pi, 0.5 * np.pi]

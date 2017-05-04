@@ -1,4 +1,4 @@
-class ReLU(function):
+class ReLU:
     # Rectified Linear Unit f(x) = 0, x < 0
     #                      f(x) = ax, x >= 0
     def __init__(self):

@@ -1,4 +1,4 @@
-class step(function):
+class step:
     # Step Function f(x) = 0, x < 0
     #              f(x) = 1, x >= 0
     def __init__(self):

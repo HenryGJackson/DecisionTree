@@ -1,4 +1,7 @@
-class bent_identity:
+import numpy as np
+
+
+class BentIdentity:
     # f(x) = 0.5 * (sqrt(x^2 + 1) - 1) + x
     def __init__(self):
         self.range = [-float("inf"), float("inf")]

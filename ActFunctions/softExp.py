@@ -1,4 +1,7 @@
-class soft_exponential(function):
+import numpy as np
+
+
+class soft_exponential:
     def __init__(self, a):
         self.a = a
         self.range = [-float("inf"), float("inf")]

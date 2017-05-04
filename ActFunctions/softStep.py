@@ -1,5 +1,8 @@
-class soft_step(function):
-    # Soft step function f(x) = 1 / (1 + exp(-ax))
+import numpy as np
+
+
+class soft_step:
+    # Soft step ActFunctions f(x) = 1 / (1 + exp(-ax))
     def __init__(self):
         self.expo = 1
         self.range = [0, 1]
