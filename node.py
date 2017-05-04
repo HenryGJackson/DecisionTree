@@ -1,5 +1,5 @@
 from ActFunctions import *
-
+import pandas as pd
 
 # https://en.wikipedia.org/wiki/Activation_function
 # classes of activation functions
@@ -33,6 +33,7 @@ class neuron(ActFunction):
         self.failInd = 1
         self.passInd = 0
         self.func_locked = False
+        self.layer = 1
         self.id = ID
         self.split_data_set = False
         self.failure_node_exists = False
@@ -59,7 +60,7 @@ class neuron(ActFunction):
     def get_non_output_daughters(self):
         if self.failure_node_exists & self.success_node_exists:
             if not ((self.get_success_node().is_output()) & (self.get_failure_node().is_output())):
-                nodes = [self.get_success_node(), self.get_failure_node]
+                nodes = [self.get_success_node(), self.get_failure_node()]
             elif self.get_success_node().is_output():
                 nodes = [self.get_failure_node()]
             elif self.get_failure_node().is_output():
@@ -106,8 +107,11 @@ class neuron(ActFunction):
         if layer == 0:
             self.type = "Input"
         elif layer == -1:
+            self.layer = -1
             self.type = "Output"
             self.return_val = result
+            self.success_node = None
+            self.failure_node = None
         else:
             self.type = "Intermediate"
         return
@@ -141,7 +145,7 @@ class neuron(ActFunction):
             return False
 
     def is_output(self):
-        if self.get_type == "Output":
+        if self.layer < 0:
             return True
         else:
             return False
@@ -221,15 +225,13 @@ class neuron(ActFunction):
         if self.success_node_exists:
             return self.success_node
         else:
-            print("neuron->get_success_node: Success node does not exist")
-            return None
+            raise Exception("neuron->get_success_node: Success node does not exist")
 
     def get_failure_node(self):
         if self.failure_node_exists:
             return self.failure_node
         else:
-            stop("neuron->get_failure_node: Failure node does not exist")
-            return None
+            raise Exception("neuron->get_failure_node: Failure node does not exist")
 
     # Pass value to the next node,
     # if this is an output node, returns True of success and False for fail
@@ -262,42 +264,44 @@ class neuron(ActFunction):
             # Neuron: Training methods
 
     def find_best_activation_function(self, pass_array, fail_array, step_precision=10):
-        if array_length_check(pass_array, fail_array):
-            highest_ratio = 0
-            lowest_ratio = 1.0
-            cut_val_high = None
-            best_method_high = None
-            cut_val_low = None
-            best_method_low = None
-            # print pass_array, fail_array
-            for method in range(17):
-                # Get the number of successfully catagorized events for each set
-                self.change_function(method)
-                results = self.find_best_cut(pass_array, fail_array, step_precision)
-                if results[1] > highest_ratio:
-                    highest_ratio = results[1]
-                    cut_val_high = results[0]
-                    best_method_high = method
-                elif results[1] < lowest_ratio:
-                    lowest_ratio = results[1]
-                    cut_val_low = results[0]
-                    best_method_low = method
-            low_inverse = (1 - lowest_ratio)
-            if highest_ratio > low_inverse:
-                best_ratio = highest_ratio
-                cut_val = cut_val_high
-                best_method = best_method_high
-                dont_invert = True
-            else:
-                best_ratio = low_inverse
-                cut_val = cut_val_low
-                best_method = best_method_low
-                dont_invert = False
-            # self.set ActFunctions(best_method, cut_val, dont_invert)
-            # self.set_function(best_method, cut_val, best_ratio, dont_invert)
-            return best_method, cut_val, best_ratio, dont_invert
-        else:
-            raise Exception("Array Length Error")
+        # if array_length_check(pass_array, fail_array):
+        highest_ratio = 0
+        lowest_ratio = 1.0
+        cut_val_high = None
+        best_method_high = None
+        cut_val_low = None
+        best_method_low = None
+        # print pass_array, fail_array
+        for method in range(17):
+            # Get the number of successfully catagorized events for each set
+            self.change_function(method)
+            results = self.find_best_cut(pass_array, fail_array, step_precision)
+            if results[1] > highest_ratio:
+                highest_ratio = results[1]
+                cut_val_high = results[0]
+                dont_invert = results[2]
+                best_method_high = method
+                # print("Method: ", method, ", ratio: ", highest_ratio)
+        #     elif results[1] < lowest_ratio:
+        #         lowest_ratio = results[1]
+        #         cut_val_low = results[0]
+        #         best_method_low = method
+        # low_inverse = (1 - lowest_ratio)
+        # if highest_ratio > low_inverse:
+        best_ratio = highest_ratio
+        cut_val = cut_val_high
+        best_method = best_method_high
+        # dont_invert = True
+        # else:
+        #     best_ratio = low_inverse
+        #     cut_val = cut_val_low
+        #     best_method = best_method_low
+        #     dont_invert = False
+        # self.set ActFunctions(best_method, cut_val, dont_invert)
+        # self.set_function(best_method, cut_val, best_ratio, dont_invert)
+        return best_method, cut_val, best_ratio, dont_invert
+        # else:
+        #     raise Exception("Array Length Error")
 
     def get_pass_list(self, df):
         pass_list = []
@@ -312,8 +316,36 @@ class neuron(ActFunction):
 
     # def set_pass_dfs(self, list1, list2):
 
+
+
+    def get_data_sets(self, pass_data = True):
+        if self.split_data_set:
+            if pass_data:
+                if isinstance(self.accept_pass_df, pd.DataFrame):
+                    if isinstance(self.accept_fail_df, pd.DataFrame):
+                        return self.accept_pass_df, self.accept_fail_df
+                    return self.accept_pass_df, None
+                if isinstance(self.accept_fail_df, pd.DataFrame):
+                    return None, self.accept_fail_df
+                return None, None
+            else:
+                if isinstance(self.reject_pass_df, pd.DataFrame):
+                    if isinstance(self.reject_fail_df, pd.DataFrame):
+                        return self.reject_pass_df, self.accept_fail_df
+                    return self.reject_pass_df, None
+                if isinstance(self.reject_fail_df, pd.DataFrame):
+                    return None, self.reject_fail_df
+                return None, None
+        else:
+            raise Exception("Data not been split")
+
+
     def cut_dataset(self, win_df, lose_df):
-        lists = self.get_pass_list(win_df)
+        if isinstance(win_df, pd.DataFrame):
+            lists = self.get_pass_list(win_df)
+        else:
+            if win_df.empty():
+                raise Exception("Empty win df. Add allowance for this")
         if not lists[0]:
             self.accept_pass_df = None
             # if not (self.accept_pass_df).empty():
@@ -322,7 +354,7 @@ class neuron(ActFunction):
             # self.set_type(-1,False)
             # return
         else:
-            self.accept_pass_df = win_df.drop(lists[0]).reset_index()
+            self.accept_pass_df = win_df.drop(lists[0]).reset_index(drop=True)
             print("accept_pass_df set")
         if not lists[1]:
             self.reject_pass_df = None
@@ -332,15 +364,19 @@ class neuron(ActFunction):
             # self.set_type(-1,True)
             # return
         else:
-            self.reject_pass_df = win_df.drop(lists[1]).reset_index()
+            self.reject_pass_df = win_df.drop(lists[1]).reset_index(drop=True)
             print("reject_pass_df set")
 
-        lists2 = self.get_pass_list(lose_df)
+        if isinstance(lose_df, pd.DataFrame):
+            lists2 = self.get_pass_list(lose_df)
+        else:
+            if lose_df.empty():
+                raise Exception("Empty win df. Add allowance for this")
         if not lists2[0]:
             self.accept_fail_df = None
             print("accept_fail_df set None")
         else:
-            self.accept_fail_df = lose_df.drop(lists2[0]).reset_index()
+            self.accept_fail_df = lose_df.drop(lists2[0]).reset_index(drop=True)
             print("accept_fail_df set")
 
             # self.set_type(-1,True)
@@ -349,7 +385,7 @@ class neuron(ActFunction):
             self.reject_fail_df = None
             print("reject_fail_df set None")
         else:
-            self.reject_fail_df = lose_df.drop(lists2[1]).reset_index()
+            self.reject_fail_df = lose_df.drop(lists2[1]).reset_index(drop=True)
             print("reject_fail_df set")
 
             # self.set_type(-1,False)

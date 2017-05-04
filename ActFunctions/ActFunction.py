@@ -17,6 +17,11 @@ from ActFunctions.softsign import softsign
 from ActFunctions.step import step
 from ActFunctions.tanh import tanh
 
+def get_larger(val1, val2):
+    if val1 > val2:
+        return val1
+    else:
+        return val2
 
 def array_length_check(pass_array, fail_array):
     if len(pass_array) < 1 | len(fail_array) < 1:
@@ -117,41 +122,47 @@ class ActFunction:
     def cut_inverted(self):
         return self.cutdir
 
+
     # Returns two arrays of values after the initial values have been passed through the activation ActFunctions
     def apply_function(self, pass_array, fail_array):
-        if array_length_check(pass_array, fail_array):
-            pass_results = []
-            fail_results = []
-            # print (pass_array)
-            for i in range(len(pass_array)):
-                # print("apply_function",i,pass_array[i])
+        # if array_length_check(pass_array, fail_array):
+        pass_results = []
+        fail_results = []
+        iters = get_larger(len(pass_array),len(fail_array))
+        # print (pass_array)
+        for i in range(iters):
+            # print("apply_function",i,pass_array[i])
+            if i < len(pass_array):
                 pass_results.append(self.func.evaluate(pass_array[i]))
+            if i < len(fail_array):
                 fail_results.append(self.func.evaluate(fail_array[i]))
-                # print("loop\n\n")
-            return pass_results, fail_results
-        else:
-            raise Exception("Array Length Error")
+            # print("loop\n\n")
+        return pass_results, fail_results
+        # else:
+        #     raise Exception("Array Length Error")
 
     def get_function_range(self, pass_output, fail_output):
-        if array_length_check(pass_output, fail_output):
+        # if array_length_check(pass_output, fail_output):
             # pass_output = pass_output.reset_index()
             # fail_output = fail_output.reset_index()
             # print (len(pass_output))
-            self.mini = pass_output[0]
-            self.maxi = pass_output[0]
-            for i in range(len(pass_output)):
-                if pass_output[i] < fail_output[i]:
-                    if pass_output[i] < self.mini:
-                        self.mini = pass_output[i]
-                    if fail_output[i] > self.maxi:
-                        self.maxi = fail_output[i]
-                else:
-                    if pass_output[i] > self.maxi:
-                        self.maxi = pass_output[i]
-                    if fail_output[i] < self.mini:
-                        self.mini = fail_output[i]
-        else:
-            raise Exception("Array Length Error")
+        self.mini = pass_output[0]
+        self.maxi = pass_output[0]
+        iters = get_larger(len(pass_output), len(fail_output))
+        for i in range(iters):
+            if i < len(pass_output):
+                if pass_output[i] < self.mini:
+                    self.mini = pass_output[i]
+                elif pass_output[i] > self.maxi:
+                    self.maxi = pass_output[i]
+            if i < len(fail_output):
+                if fail_output[i] < self.mini:
+                    self.mini = fail_output[i]
+                if fail_output[i] > self.maxi:
+                    self.maxi = fail_output[i]
+
+        # else:
+        #     raise Exception("Array Length Error")
 
     # Finds the best cut to use for a ActFunctions which is locked in.
     # Iterates over the range of output for the ActFunctions with number of iterations = step_number
@@ -159,34 +170,44 @@ class ActFunction:
     # Returns the best cut value and the ratio of pass/fail (including both sets)
     # Means that to find the best method only requires comparing output pf this ActFunctions for each method
     def find_best_cut(self, pass_array, fail_array, step_number=10):
-        if array_length_check(pass_array, fail_array):
-            func_output = self.apply_function(pass_array, fail_array)
-            # print (func_output)
-            self.get_function_range(func_output[self.passind], func_output[self.failind])
-            step_size = float(self.maxi - self.mini / step_number)
-            best_ratio = 0
-            best_cut = 0
-            for i in range(step_number):
-                cut_val = i * step_size
-                self.set_cut(cut_val)
-                correct = 0
-                incorrect = 0
-                for j in range(len(pass_array)):
+        # if array_length_check(pass_array, fail_array):
+        func_output = self.apply_function(pass_array, fail_array)
+        # print (func_output)
+        self.get_function_range(func_output[self.passind], func_output[self.failind])
+        step_size = float(self.maxi - self.mini / step_number)
+        best_ratio = 0
+        best_cut = 0
+        iters = get_larger(len(pass_array), len(fail_array))
+        for i in range(step_number):
+            cut_val = i * step_size
+            self.set_cut(cut_val)
+            correct = 0
+            incorrect = 0
+            for j in range(iters):
+                if j < len(pass_array):
                     if self.pass_cut(pass_array[j]):
                         correct += 1
                     else:
                         incorrect += 1
+                if j < len(fail_array):
                     if self.pass_cut(fail_array[j]):
                         incorrect += 1
                     else:
                         correct += 1
-                ratio = float(correct / (correct + incorrect))
-                if ratio > best_ratio:
-                    best_ratio = ratio
-                    best_cut = cut_val
-            return best_cut, best_ratio
-        else:
-            raise Exception("Array Length Error")
+            ratio = float(correct / (correct + incorrect))
+
+            if ratio > best_ratio:
+                best_ratio = ratio
+                best_cut = cut_val
+                direct = True
+            if (1 - ratio) > best_ratio:
+                best_ratio = ratio
+                best_cut = cut_val
+                direct = False
+                # print("find_best_cut, method: ", self.func.__str__(), ", Ratio: ", best_ratio)
+        return best_cut, best_ratio, direct
+        # else:
+        #     raise Exception("Array Length Error")
             # End Trinings methods
 
             # Individual Function Classes

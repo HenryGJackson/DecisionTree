@@ -1,9 +1,10 @@
 import pandas as pd
+import numpy as np
 from network import network
 
 def normalise_data(df):
     for i, j in enumerate(df):
-        if j == "Species":
+        if (df[j].dtype != np.int64) & (df[j].dtype != np.float64):
             # print ("String")
             continue
         # print (df[j])
@@ -28,13 +29,15 @@ def array_length_check(pass_array, fail_array):
         return True
 
 
-df = pd.read_csv("Iris.csv")
+df = pd.read_csv("EPL20132014Odds.csv")
+
+
 df = normalise_data(df)
-net = network(5)
-nwin_df = df[df["Species"] == "Iris-setosa"].reset_index()
-nlose_df = df[df["Species"] != "Iris-setosa"].reset_index()
-nwin_df = nwin_df.drop("Species", axis=1)
-nlose_df = nlose_df.drop("Species", axis=1)
+net = network(3)
+nwin_df = df[df["Result"] == 1].reset_index(drop=True)
+nlose_df = df[df["Result"] != 1].reset_index(drop=True)
+nwin_df = nwin_df.drop("Result", axis=1)
+nlose_df = nlose_df.drop("Result", axis=1)
 print(nwin_df)
 # exit()
 if len(nwin_df) != len(nlose_df):
@@ -47,10 +50,11 @@ if len(nwin_df) != len(nlose_df):
 # print(lose_df)
 print("Cut Dataframe", len(nwin_df), len(nlose_df))
 
-net.create_network(nwin_df, nlose_df)
+net.create_network(nwin_df, nlose_df, 10)
+net.print_node(net.seed)
+# print(net.seed.accept_pass_df)
 print("network created")
-net.visualise_tree()
-# test_df =
+# net.visualise_tree()
 # event = df.iloc[130].drop("Species")
 # print(event)
 # answer = net.seed.pass_on(df.iloc[130].drop("Species"))

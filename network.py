@@ -1,5 +1,6 @@
 from node import neuron
-
+import pandas as pd
+import numpy as np
 # Global methods:
 # Check both arrays are of non-zero length
 def array_length_check(pass_array, fail_array):
@@ -59,20 +60,34 @@ class network:
                 print(node.get_variable, " < ", node.get_cut())
             else:
                 print(node.get_variable, " > ", node.get_cut())
+            print("Weight: ", node.weight)
+            if isinstance(node.accept_pass_df, pd.DataFrame) & isinstance(node.accept_fail_df, pd.DataFrame):
+                print("Accepted: Winners: ", len(node.accept_pass_df), "Losers: ", len(node.accept_fail_df))
+            elif isinstance(node.accept_pass_df, pd.DataFrame):
+                print("Accepted: Winners: ", len(node.accept_pass_df), "Losers: ", 0)
+            elif isinstance(node.accept_fail_df, pd.DataFrame):
+                print("Accepted: Winners: ", 0, "Losers: ", len(node.accept_fail_df))
+            if isinstance(node.reject_pass_df, pd.DataFrame) & isinstance(node.reject_fail_df, pd.DataFrame):
+                print("Rejected: Winners: ", len(node.reject_pass_df), "Losers: ", len(node.reject_fail_df))
+            elif isinstance(node.reject_pass_df, pd.DataFrame):
+                print("Rejected: Winners: ", len(node.reject_pass_df), "Losers: ", 0)
+            elif isinstance(node.reject_fail_df, pd.DataFrame):
+                print("Rejected: Winners: ", 0, "Losers: ", len(node.accept_fail_df))
+
 
     def visualise_tree(self):
         node = self.seed
         print("*** SEED ***")
         self.print_node(node)
         print("*** Layer 1 Fail ****")
-        self.print_node(node.get_failure_path())
+        self.print_node(node.get_failure_node())
         print("*** Layer 1 Pass ****")
-        self.print_node(node.get_success_path())
+        self.print_node(node.get_success_node())
         print("*** Layer 2 Fail ****")
         # self.print_node(node.get_failure_node().get_failure_node())
-        self.print_node(node.get_success_path().get_failure_path())
+        self.print_node(node.get_success_node().get_failure_node())
         print("*** Layer 2 Pass ****")
-        self.print_node(node.get_success_path().get_success_path())
+        self.print_node(node.get_success_node().get_success_node())
         # self.print_node(node.get_failure_node().get_success_node())
 
     def get_current_layer(self):
@@ -86,13 +101,13 @@ class network:
 
             # Network Creation Methods
 
-    def create_network(self, win_df, lose_df):
+    def create_network(self, win_df, lose_df, step_size):
         print("Creating First Node")
-        output_nodes = self.create_first_node(win_df, lose_df)
+        output_nodes = self.create_first_node(win_df, lose_df, step_size)
         # print (self.seed.get_weight())
         # self.seed.get_function().plot_hist(win_df, lose_df)
         print("First Node Created")
-        if output_nodes > 1:
+        if self.seed.is_output():
             print("Output Reached after 1st node")
             return
         # Get the nodes that stem from the input node
@@ -118,27 +133,50 @@ class network:
                 # Create the nodes that stem from this one
                 if node.has_parent:
                     if node == node.get_parent().get_success_node():
-                        win_df = node.get_parent().accept_pass_df()
-                        lose_df = node.get_parent().accept_fail_df()
+                        print("fnrorn")
+                        if not node.get_parent():
+                            raise Exception("TEST")
+                        print("Blah")
+                        data = node.get_parent().get_data_sets(True)
+                        print (data)
+                        if (not isinstance(data[0], pd.DataFrame)) and (not isinstance(data[1], pd.DataFrame)):
+                            print("Good")
+                            node.get_parent().set_type(-1, False)
+                        elif not isinstance(data[0], pd.DataFrame):
+                            node.set_type(-1, False)
+                        elif not isinstance(data[1], pd.DataFrame):
+                            node.set_type(-1, True)
+                        # win_df = node.get_parent().accept_pass_df()   #ERROR THROWN HERE
+                        # lose_df = node.get_parent().accept_fail_df()
                     else:
-                        win_df = node.get_parent().reject_pass_df()
-                        lose_df = node.get_parent().reject_fail_df()
+                        data = node.get_parent().get_data_sets(False)
+                        if (not isinstance(data[0], pd.DataFrame)) and (not isinstance(data[1], pd.DataFrame)):
+                            node.get_parent().set_type(-1,True)
+                        elif not isinstance(data[0], pd.DataFrame):
+                            node.set_type(-1, False)
+                        elif not isinstance(data[1], pd.DataFrame):
+                            node.set_type(-1, True)
+                        # win_df = node.get_parent().reject_pass_df()
+                        # lose_df = node.get_parent().reject_fail_df()
                 else:
                     raise Exception("node has no parent")
-
+                if (node.layer < 0) or (node.get_parent().layer < 0):
+                    continue
+                if not isinstance(data[0], pd.DataFrame) or not isinstance(data[1], pd.DataFrame):
+                    raise ValueError("Emptry dataframes")
                 # Find the best activation function and variable to use on the data that is fed into this node
-                node = self.prepare_node(win_df, lose_df, node)
+                node = self.prepare_node(data[0], data[1], node, step_size)
                 # Cut the dataset using the best function and applying it to the variable chosen in prepare_node()
-                node.cut_dataset(win_df, lose_df)
+                node.cut_dataset(data[0], data[1])
                 # Create the nodes stemming from this one
                 new_inter_nodes += self.branch_node(node)
-                if not node.get_success_node().is_output():
+                if node.get_success_node().layer > 0:
                     tmp_new_nodes = tmp_new_nodes.append(node.get_success_node())
-                if not node.get_failure_node().is_output():
+                if not node.get_failure_node().layer > 0:
                     tmp_new_nodes = tmp_new_nodes.append(node.get_failure_node())
                     # If this node isn't an output node, add the two new nodes to a temporary list
             if not tmp_new_nodes:
-                raise Exception("No new nodes created. exiting..")
+                break
             else:
                 layer = tmp_new_nodes
             self.increment_layer()
@@ -195,13 +233,13 @@ class network:
         else:
             return 0
 
-    def create_first_node(self, win_df, lose_df):
+    def create_first_node(self, win_df, lose_df, step_size = 10):
         # find the best classification ActFunctions for two arrays of the values of ONE variable...
         # ... which correspond to winners and losers
         self.node_count += 1
         self.seed = neuron(self.node_count)
         self.seed.set_type(0)
-        self.seed = self.prepare_node(win_df, lose_df, self.seed)
+        self.seed = self.prepare_node(win_df, lose_df, self.seed, step_size)
         self.increment_layer()
         self.seed.cut_dataset(win_df, lose_df)
         new_inter_nodes = self.branch_node(self.seed)
@@ -227,18 +265,18 @@ class network:
     def check_output(self, node):
         nodes_created = 0
         self.print_node(node)
-        if node.is_output():
+        if node.layer < 0:
             return True
-        elif not node.accept_pass_df:
+        elif not isinstance(node.accept_pass_df, pd.DataFrame):
             self.create_output_node(node, True, False)
             nodes_created += 1
-        elif not node.accept_fail_df:
+        elif not isinstance(node.accept_fail_df, pd.DataFrame):
             self.create_output_node(node, True, True)
             nodes_created += 1
-        elif not node.reject_pass_df:
+        elif not isinstance(node.reject_pass_df, pd.DataFrame):
             self.create_output_node(node, False, False)
             nodes_created += 1
-        elif not node.reject_fail_df:
+        elif not isinstance(node.reject_fail_df, pd.DataFrame):
             self.create_output_node(node, False, True)
             nodes_created += 1
         if nodes_created > 2:
@@ -248,23 +286,27 @@ class network:
 
     # Calculate the best activation function for each variable and find which has best separation between training
     # samples
-    def prepare_node(self, win_df, lose_df, node):
+    def prepare_node(self, win_df, lose_df, node, step_size = 10):
         if node is None:
             raise ValueError("neuron object passed in has value None")
         else:
-            if node.is_output():
+            if node.layer < 0:
                 raise ValueError("neuron object passed in is an output node")
             print("*** NEW NODE --- LEVEL: ", self.get_current_layer(), " , ID: ", node.id, "***")
             if not (node.is_input()):
                 print("... PARENT: ", node.get_parent().id)
             # else:
             #     print("This is the Input Node")
-            # print("Progress: |",flush = True)
+            print("Progress: |", flush=True)
             best_ratio = 0.0
             variables = list(win_df)
             usable_variable = False
+            count = 0
             for variable in variables:
-                if (variable == "Species") | (self.check_variable_use(variable)):
+                count += 1
+                # print("Variable ", count , " of ", len(variables), flush=True)
+                if ((win_df[variable].dtype != np.int64) & (win_df[variable].dtype != np.float64)) | (self.check_variable_use(variable)):
+                    print(win_df[variable].dtype, self.check_variable_use(variable))
                     continue  # print "VARIABLE: ", variable
                 #A new variable has been found
                 usable_variable = True
@@ -272,12 +314,13 @@ class network:
                 winners = win_df[variable]
                 losers = lose_df[variable]
                 # Find out the best activation function for this variable
-                result = node.find_best_activation_function(winners, losers, 50)
+                result = node.find_best_activation_function(winners, losers, step_size)
                 # result[0] = best method index
                 # result[1] = best cut value
                 # result[2] = best cut ratio
                 # result[3] = (Values greater than cut are winners) True OR False
                 if result[2] > best_ratio:
+                    best_ratio = result[2]
                     best_results = result
                     var = variable
             # do for every variable to find which variable and method
@@ -285,6 +328,7 @@ class network:
                 return None
             # Lock the function to this node so that it's details cannot be changed
             node.set_function(best_results[0], best_results[1], best_results[2], best_results[3])
+            print(node.__str__())
             print("VARIABLE: ", var)
             #Add variable to the list of ones used
             self.add_to_used_variables(var)
