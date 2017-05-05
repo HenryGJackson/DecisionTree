@@ -147,7 +147,7 @@ class network:
                             node.set_type(-1, True)
                         # win_df = node.get_parent().accept_pass_df()   #ERROR THROWN HERE
                         # lose_df = node.get_parent().accept_fail_df()
-                    else:
+                    elif node is node.get_parent().get_failure_node():
                         data = node.get_parent().get_data_sets(False)
                         if (not isinstance(data[0], pd.DataFrame)) and (not isinstance(data[1], pd.DataFrame)):
                             node.get_parent().set_type(-1,True)
@@ -157,6 +157,8 @@ class network:
                             node.set_type(-1, True)
                         # win_df = node.get_parent().reject_pass_df()
                         # lose_df = node.get_parent().reject_fail_df()
+                    else:
+                        raise ValueError("Node must be the daughter of another")
                 else:
                     raise Exception("node has no parent")
                 if (node.layer < 0) or (node.get_parent().layer < 0):
