@@ -38,12 +38,12 @@ nwin_df = df[df["Result"] == 1].reset_index(drop=True)
 nlose_df = df[df["Result"] != 1].reset_index(drop=True)
 nwin_df = nwin_df.drop("Result", axis=1)
 nlose_df = nlose_df.drop("Result", axis=1)
-print(nwin_df)
-# exit()
+# print(nwin_df)
 if len(nwin_df) != len(nlose_df):
     # print("Cutting Dataframe",len(win_df), len(lose_df))
     if len(nwin_df) > len(nlose_df):
         nwin_df = nwin_df[:len(nlose_df)]
+# exit()df)]
     else:
         nlose_df = nlose_df[:len(nwin_df)]
 # print(win_df)

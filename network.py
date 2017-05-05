@@ -27,6 +27,8 @@ class network:
         self.node_count = 0
         self.used_variables = []
         self.seed = None
+        self.failInd = 1
+        self.passInd = 0
         return
 
     def add_to_used_variables(self, variable):
@@ -103,7 +105,7 @@ class network:
 
     def create_network(self, win_df, lose_df, step_size):
         print("Creating First Node")
-        output_nodes = self.create_first_node(win_df, lose_df, step_size)
+        self.create_first_node(win_df, lose_df, step_size)
         # print (self.seed.get_weight())
         # self.seed.get_function().plot_hist(win_df, lose_df)
         print("First Node Created")
@@ -122,6 +124,7 @@ class network:
         print("New Nodes Created")
 
         while self.check_layer():
+            print(" --- NEW LAYER: ", self.current_layer, " ---")
             tmp_new_nodes = []
             new_inter_nodes = 0
             # Loop through all of the newly created node objects
@@ -132,13 +135,9 @@ class network:
                     continue
                 # Create the nodes that stem from this one
                 if node.has_parent:
-                    if node == node.get_parent().get_success_node():
-                        print("fnrorn")
-                        if not node.get_parent():
-                            raise Exception("TEST")
-                        print("Blah")
+                    if node is node.get_parent().get_success_node():
                         data = node.get_parent().get_data_sets(True)
-                        print (data)
+                        # print (data)
                         if (not isinstance(data[0], pd.DataFrame)) and (not isinstance(data[1], pd.DataFrame)):
                             print("Good")
                             node.get_parent().set_type(-1, False)
@@ -248,12 +247,16 @@ class network:
 
     def create_output_node(self, node, direction, return_value):
         if direction:
+            print("New Output Node: Parent: ", node.id, ", Value: -WIN-")
+            self.print_node(node)
             self.node_count += 1
             new_node = neuron(self.node_count)
             new_node.set_type(-1, return_value)
             node.set_success_path(new_node, self.current_layer)
             # node.set_failure_path(None)
         else:
+            print("New Output Node: Parent: ", node.id, ", Value: -LOSE-")
+            self.print_node(node)
             self.node_count += 1
             new_node = neuron(self.node_count)
             new_node.set_type(-1, return_value)
@@ -261,24 +264,57 @@ class network:
             # node.set_success_path(None)
         return
 
+    def assess_ratio(self, win_df, lose_df):
+        if len(win_df)/len(lose_df) < 0.05:
+            return self.failInd
+        elif len(win_df) / len(lose_df) > 0.95:
+            return self.passInd
+        else:
+            return -1
+
     # Check if the node passed in should be an output node
+    # use assess node to find which daughter node should bb e output
     def check_output(self, node):
         nodes_created = 0
         self.print_node(node)
+        check = -1
         if node.layer < 0:
             return True
-        elif not isinstance(node.accept_pass_df, pd.DataFrame):
-            self.create_output_node(node, True, False)
-            nodes_created += 1
-        elif not isinstance(node.accept_fail_df, pd.DataFrame):
-            self.create_output_node(node, True, True)
-            nodes_created += 1
-        elif not isinstance(node.reject_pass_df, pd.DataFrame):
-            self.create_output_node(node, False, False)
-            nodes_created += 1
-        elif not isinstance(node.reject_fail_df, pd.DataFrame):
-            self.create_output_node(node, False, True)
-            nodes_created += 1
+        # Check
+        if isinstance(node.accept_pass_df, pd.DataFrame):
+            if isinstance(node.accept_fail_df, pd.DataFrame):
+                check = self.assess_ratio(node.accept_pass_df, node.accept_fail_df)
+            if check == self.failInd or not isinstance(node.accept_fail_df, pd.DataFrame):
+                self.create_output_node(node, True, False)
+                nodes_created += 1
+        if isinstance(node.accept_fail_df, pd.DataFrame):
+            if check == self.passInd or not isinstance(node.accept_pass_df, pd.DataFrame):
+                self.create_output_node(node, True, True)
+                nodes_created += 1
+        check = -1
+        if isinstance(node.reject_pass_df, pd.DataFrame):
+            if isinstance(node.reject_fail_df, pd.DataFrame):
+                check = self.assess_ratio(node.reject_pass_df, node.reject_fail_df)
+            if check == self.failInd or not isinstance(node.reject_fail_df, pd.DataFrame):
+                self.create_output_node(node, False, False)
+                nodes_created += 1
+        if isinstance(node.reject_fail_df, pd.DataFrame):
+            if check == self.passInd or not isinstance(node.reject_pass_df, pd.DataFrame):
+                self.create_output_node(node, False, True)
+                nodes_created += 1
+
+        # elif not isinstance(node.accept_pass_df, pd.DataFrame):
+        #     self.create_output_node(node, True, False)
+        #     nodes_created += 1
+        # elif not isinstance(node.accept_fail_df, pd.DataFrame):
+        #     self.create_output_node(node, True, True)
+        #     nodes_created += 1
+        # elif not isinstance(node.reject_pass_df, pd.DataFrame):
+        #     self.create_output_node(node, False, False)
+        #     nodes_created += 1
+        # elif not isinstance(node.reject_fail_df, pd.DataFrame):
+        #     self.create_output_node(node, False, True)
+        #     nodes_created += 1
         if nodes_created > 2:
             print("network->check_output: Node had no entries passed to it")
             self.print_node(node)
@@ -295,30 +331,27 @@ class network:
             print("*** NEW NODE --- LEVEL: ", self.get_current_layer(), " , ID: ", node.id, "***")
             if not (node.is_input()):
                 print("... PARENT: ", node.get_parent().id)
-            # else:
-            #     print("This is the Input Node")
             print("Progress: |", flush=True)
             best_ratio = 0.0
             variables = list(win_df)
             usable_variable = False
-            count = 0
+            # count = 0
+
             for variable in variables:
-                count += 1
-                # print("Variable ", count , " of ", len(variables), flush=True)
+                # count += 1
+                # printgit("Variable ", count , " of ", len(variables), flush=True)
                 if ((win_df[variable].dtype != np.int64) & (win_df[variable].dtype != np.float64)) | (self.check_variable_use(variable)):
-                    print(win_df[variable].dtype, self.check_variable_use(variable))
-                    continue  # print "VARIABLE: ", variable
-                #A new variable has been found
+                    # print(win_df[variable].dtype, self.check_variable_use(variable))
+                    continue
+                #Anew variable has been found
                 usable_variable = True
                 #Get lists of this variable
                 winners = win_df[variable]
                 losers = lose_df[variable]
                 # Find out the best activation function for this variable
                 result = node.find_best_activation_function(winners, losers, step_size)
-                # result[0] = best method index
-                # result[1] = best cut value
-                # result[2] = best cut ratio
-                # result[3] = (Values greater than cut are winners) True OR False
+                # result[0/1/2/3] = best method index / best cut value / best cut value
+                #                   / (Values greater than cut are winners) True OR False
                 if result[2] > best_ratio:
                     best_ratio = result[2]
                     best_results = result
@@ -350,7 +383,7 @@ class network:
                 return weight
             else:
                 current_node = current_node.get_parent()
-                if current_node == None:
+                if current_node is None:
                     return weight
 
     # def create_next_nodes(self, current_node):

@@ -183,6 +183,7 @@ class neuron(ActFunction):
 
             # Check the best attribute ActFunctions for pass/fail with value x
 
+
     def passes_cut(self, x):
         if self.func_locked:
             val = self.evaluate(x)
@@ -331,7 +332,7 @@ class neuron(ActFunction):
             else:
                 if isinstance(self.reject_pass_df, pd.DataFrame):
                     if isinstance(self.reject_fail_df, pd.DataFrame):
-                        return self.reject_pass_df, self.accept_fail_df
+                        return self.reject_pass_df, self.reject_fail_df
                     return self.reject_pass_df, None
                 if isinstance(self.reject_fail_df, pd.DataFrame):
                     return None, self.reject_fail_df
@@ -341,64 +342,40 @@ class neuron(ActFunction):
 
 
     def cut_dataset(self, win_df, lose_df):
+        # Get list of entries in win list that pass the cut
         if isinstance(win_df, pd.DataFrame):
             lists = self.get_pass_list(win_df)
         else:
-            if win_df.empty():
-                raise Exception("Empty win df. Add allowance for this")
+            raise Exception("cut_data_set. 1st Parameter Should be pandas.DataFrame")
+
+        # If lists are empty set to None otherwise get dataframe subset
         if not lists[0]:
             self.accept_pass_df = None
-            # if not (self.accept_pass_df).empty():
-            #     print("NOT EMPTY")
-            print("accept_pass_df set None")
-            # self.set_type(-1,False)
-            # return
         else:
             self.accept_pass_df = win_df.drop(lists[0]).reset_index(drop=True)
-            print("accept_pass_df set")
         if not lists[1]:
             self.reject_pass_df = None
-            # if (self.reject_pass_df).empty():
-            #     print("NOT EMPTY")
-            # print("reject_pass_df set None")
-            # self.set_type(-1,True)
-            # return
         else:
             self.reject_pass_df = win_df.drop(lists[1]).reset_index(drop=True)
-            print("reject_pass_df set")
 
+        # Get list of entries in lose list that pass the cut
         if isinstance(lose_df, pd.DataFrame):
             lists2 = self.get_pass_list(lose_df)
         else:
-            if lose_df.empty():
-                raise Exception("Empty win df. Add allowance for this")
+            raise Exception("cut_data_set. 2st Parameter Should be pandas.DataFrame")
+        # If lists are empty set to None otherwise get dataframe subset
         if not lists2[0]:
             self.accept_fail_df = None
             print("accept_fail_df set None")
         else:
             self.accept_fail_df = lose_df.drop(lists2[0]).reset_index(drop=True)
             print("accept_fail_df set")
-
-            # self.set_type(-1,True)
-            # return
         if not lists2[1]:
             self.reject_fail_df = None
             print("reject_fail_df set None")
         else:
             self.reject_fail_df = lose_df.drop(lists2[1]).reset_index(drop=True)
             print("reject_fail_df set")
-
-            # self.set_type(-1,False)
-            # return
-        # if self.accept_pass_df.empty:
-        #     print("empty")
-        # if self.reject_pass_df.empty:
-        #     print("empty")
-        # print self.accept_pass_df, self.reject_pass_df
-        # if self.accept_fail_df.empty:
-        #     print("empty")
-        # if self.reject_fail_df.empty:
-        #     print("empty")
         self.split_data_set = True
         return self
 

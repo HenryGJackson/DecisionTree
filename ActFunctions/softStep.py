@@ -12,6 +12,7 @@ class soft_step:
 
     def setExponent(self, value):
         self.expo = value
+        return
 
     def evaluate(self, value):
         return 1.0 / (1 + np.exp(-self.expo * value))
