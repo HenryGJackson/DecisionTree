@@ -33,3 +33,4 @@ ratio > 0.95 results in creation of an output node.
 for the "losing dataframe"  
 &nbsp;&nbsp;-&nbsp;&nbsp;Check whether the algorithm to store newly created NON-OUTPUT nodes properly works.  
 &nbsp;&nbsp;-&nbsp;&nbsp;Create only one output node and link all intermediates that would otherwise be output to this node.  
+&nbsp;&nbsp;-&nbsp;&nbsp;Alter definitions and names used to fit convention.  
